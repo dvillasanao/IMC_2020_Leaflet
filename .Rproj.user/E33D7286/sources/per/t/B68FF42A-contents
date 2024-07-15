@@ -1,0 +1,496 @@
+---
+title: "Leaflet 2020"
+author: "Diana Villasana Ocampo"
+output:
+   html_document:
+      highlight: tango
+      theme: flatly
+      toc: yes
+      toc_depth: 2
+      toc_float:
+        collapsed: yes
+---
+\usepackage{color}
+
+```{=html}
+<style>
+code.r{
+  font-size: 10px;
+}
+pre {
+  font-size: 12px
+}
+</style>
+
+<style>
+body {
+text-align: justify;
+font-style: normal;
+font-family: "Montserrat";
+font-size: 12px
+}
+h1.title {
+  font-size: 40px;
+  color: #000D3B;
+}
+h1 {
+  color: #B6854D;
+}
+h2 {
+  color: #172984;
+}
+h3 {
+  color: #172984;
+}
+</style>
+```
+
+```{=html}
+<style>
+.nav>li>a {
+    position: relative;
+    display: block;
+    padding: 10px 15px;
+    color: #0A2687;
+}
+.nav-pills>li.active>a, .nav-pills>li.active>a:hover, .nav-pills>li.active>a:focus {
+    color: #ffffff;
+    background-color: #09C2BC;
+}
+</style>
+```
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = FALSE, cache.lazy = FALSE, 
+                         eval = FALSE, class.source = "fold-show")
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+options(encoding = "UTF8")
+```   
+ 
+
+```{r, echo=FALSE}
+rm(list = ls())
+```
+
+```{r, echo=FALSE}
+setwd(here::here())
+```
+
+
+**Font Stlye**  
+
+```{r}
+require(showtext)
+# activar showtext
+showtext_auto()
+font_add_google("Montserrat", "montserrat")
+```
+
+
+```{r}
+require(dplyr)
+require(spdplyr)
+require(forcats)
+require(htmltools)
+require(leaflet)
+require(htmlwidgets)
+require(ggmap)
+require(ggplot2)
+require(ggridges)
+require(grDevices)
+require(ggpubr)
+require(forcats)
+require(rgdal)
+require(tibble)
+require(sf)
+require(stringr)
+require(RColorBrewer)
+require(leafgl)
+require(leaflet.extras)
+require(mapview)
+```
+
+## Índice de marginación 2020
+
+```{r}
+load("Output/IMC_2020.RData")
+str(IMC_2020)
+```
+
+
+**Se leen los objetos de los shapefiles**
+
+```{r}
+shape_estados <- geojsonio::geojson_read("Output/Shapes/estados_json.geojson", what = "sp") 
+shape_municipios <- geojsonio::geojson_read("Output/Shapes/municipios_json.geojson", what = "sp") 
+shape_colonias_1 <- geojsonio::geojson_read("Output/Shapes/colonias_1_json.geojson", what = "sp") 
+shape_colonias_2 <- geojsonio::geojson_read("Output/Shapes/colonias_2_json.geojson", what = "sp") 
+shape_colonias_3 <- geojsonio::geojson_read("Output/Shapes/colonias_3_json.geojson", what = "sp") 
+shape_colonias_4 <- geojsonio::geojson_read("Output/Shapes/colonias_4_json.geojson", what = "sp") 
+shape_colonias_5 <- geojsonio::geojson_read("Output/Shapes/colonias_5_json.geojson", what = "sp") 
+```
+
+```{R}
+## Data frames
+shape_estados@data <- shape_estados@data %>%
+                        select(CVE_ENT)
+shape_municipios@data <- shape_municipios@data %>%
+                          select(CVE_MUN)
+shape_colonias_1@data <- shape_colonias_1@data %>%
+                             select(CVE_COL)
+shape_colonias_2@data <- shape_colonias_2@data %>%
+                             select(CVE_COL)
+shape_colonias_3@data <- shape_colonias_3@data %>%
+                             select(CVE_COL)
+shape_colonias_4@data <- shape_colonias_4@data %>%
+                             select(CVE_COL)
+shape_colonias_5@data <- shape_colonias_5@data %>%
+                             select(CVE_COL)
+```
+
+
+```{r}
+df_1 <- as.data.frame(coordinates(shape_colonias_1)) %>%
+         rename("lon" = "V1", 
+                "lat" = "V2")
+
+df_2 <- as.data.frame(coordinates(shape_colonias_2)) %>%
+         rename("lon" = "V1", 
+                "lat" = "V2")
+
+df_3 <- as.data.frame(coordinates(shape_colonias_3)) %>%
+         rename("lon" = "V1", 
+                "lat" = "V2")
+
+df_4 <- as.data.frame(coordinates(shape_colonias_4)) %>%
+         rename("lon" = "V1", 
+                "lat" = "V2")
+
+df_5 <- as.data.frame(coordinates(shape_colonias_5)) %>%
+         rename("lon" = "V1", 
+                "lat" = "V2")
+```
+
+
+
+## Paleta de colores 
+
+```{r}
+paleta <- c("#13322B", #Muy alto
+            "#086953", #Alto 
+            "#4C9562", #Medio
+            "#D1BB9E", #Bajo
+            "#C3BA6D") # Muy bajo
+
+paleta <- c(rgb(219, 14, 14, max = 255),
+            rgb(252, 114, 0, max = 255),
+            rgb(252, 173, 0, max = 255),
+            rgb(252, 236, 0, max = 255),
+            rgb(239, 232, 170, max = 255))
+            
+## Paleta de colores                         
+mypalette <- leaflet::colorFactor(palette = paleta, 
+                                            domain = forcats::fct_relevel(IMC_2020$GM_2020, c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo")), 
+                                            na.color = "transparent")
+```
+
+**Etiquetas del mapa**   
+
+```{r, results=FALSE}
+state_popup_colonia1 <- readRDS("Output/PopUp/state_popup_colonia1.RDS")
+state_popup_colonia2 <- readRDS("Output/PopUp/state_popup_colonia2.RDS")
+state_popup_colonia3 <- readRDS("Output/PopUp/state_popup_colonia3.RDS")
+state_popup_colonia4 <- readRDS("Output/PopUp/state_popup_colonia4.RDS")
+state_popup_colonia5 <- readRDS("Output/PopUp/state_popup_colonia5.RDS")
+```
+
+
+```{r}
+popup_content_colonia <- function(data, grado) {
+              paste("<span class = 'popup-text'><span class = 'popup-Edo'>Estado: ", data$NOM_ENT, "</span><br>",
+                    "<span class = 'popup-Mun'>Municipio: ", data$NOM_MUN, "</span><br>",
+                    "<span class = 'popup-Col'>Colonia: ", data$NOM_COLONIA, "</span><br>",
+                    #"Población Total:", formatC(data$POB_TOT, format = "f", big.mark = " ", digits = 0), "<br>",
+                    "Grado de marginación: <span class='popup-C1'>", data$GM_2020, "</span><br>",
+                    "Índice de marginación: <span class='popup-C1'>", round(data$IM_2020, 2), "</span><br>",
+                    "Índice de marginación normalizado: <span class='popup-C1'>", round(data$IMN_2020, 2), 
+                    #"</span><br>",
+      #              "% Población de 6 a 14 años que no asiste a la escuela:", round(data$P6A14NAE, 2), "<br>",
+      #              "% Población de 15 años o más sin educación básica:", round(data$SBASC, 2), "<br>",
+      #              "% Población de sin derechohabiencia a los servicios de salud:", round(data$PSDSS, 2), "<br>",
+      #              "% Ocupantes en viviendas particulares sin drenaje ni excusado:", round(data$OVSDE, 2), "<br>",
+      #              "% Ocupantes en viviendas particulares sin energía eléctrica:", round(data$OVSEE, 2), "<br>",
+      #              "% Ocupantes en viviendas particulares sin agua entubada:", round(data$OVSAE, 2), "<br>",
+      #              "% Ocupantes en viviendas particulares con piso de tierra:", round(data$OVPT, 2), "<br>",
+      #              "% Ocupantes en viviendas con algún nivel de hacinamiento:", round(data$OVHAC, 2), "<br>",
+      #              "% Ocupantes en viviendas particulares sin refrigerador:", round(data$OVSREF, 2), "<br>",
+      #              "% Ocupantes en viviendas particulares sin internet:", round(data$OVSINT, 2), "<br>",
+      #              "% Ocupantes en viviendas particulares sin celular:", round(data$OVSCEL, 2), "<br>",
+                    "</span>")
+}
+```
+
+
+# Leaflet
+
+```{r}
+# Estructura del título
+tag.map.title <- tags$style(HTML("
+  .leaflet-control.map-title { 
+    transform: translate(-50%,20%);
+    position: fixed !important;
+    left: 50%;
+    text-align: center;
+    padding-left: 10px; 
+    padding-right: 10px; 
+    background: rgba(255,255,255,0.75);
+    font-weight: bold;
+    font-size: 28px;
+  }
+ ")) 
+
+# Nota de página
+title <- tags$div(
+  tag.map.title, HTML("Fuentes:Estimaciones del CONAPO con base en el INEGI, Censo de Población y Vivienda 2020.")
+)  
+```
+
+```{r}
+leaflet$dependencies <- list(htmlDependency(
+                              name = "font-awesome", 
+                               version = "4.3.0",
+                                # if local file use file instead of href below
+                                 #  with an absolute path
+                                src = c(href = paste(here::here())),
+                              stylesheet = "css_style.css"
+                              )
+                            )
+```
+
+
+
+## TopoJson
+
+```{r}
+capa_estados_topojson <- readRDS("Output/Shapes/capa_estados_topojson.rds")
+capa_colonias_1_topojson <- readRDS("Output/Shapes/capa_colonias_1_topojson.rds")
+capa_colonias_2_topojson <- readRDS("Output/Shapes/capa_colonias_2_topojson.rds")
+capa_colonias_3_topojson <- readRDS("Output/Shapes/capa_colonias_3_topojson.rds")
+capa_colonias_4_topojson <- readRDS("Output/Shapes/capa_colonias_4_topojson.rds")
+capa_colonias_5_topojson <- readRDS("Output/Shapes/capa_colonias_5_topojson.rds")
+```
+
+```{r}
+leaflet$dependencies <- list(htmlDependency(
+                              name = "font-awesome", 
+                               version = "4.3.0",
+                                # if local file use file instead of href below
+                                 #  with an absolute path
+                                 src = c(href = paste(here::here())),
+                                  stylesheet = "css_style.css"
+                              )
+                            )
+leaflet <- leaflet(options = leafletOptions(minZoom = 5)) %>% 
+            addTiles() %>% 
+             setView(lat = 19.04823666, lng = -99.36492420, zoom = 10) %>%
+              addProviderTiles(providers$OpenStreetMap, 
+                                options = providerTileOptions(minZoom = 2, maxZoom = 5)) %>%
+                setMaxBounds(lng1 = -99.36492420,
+                             lat1 = 19.04823666,
+                             lng2 = -98.94030282,
+                             lat2 = 19.59275728) %>%
+               # capa de grado "Muy alto"
+               addTopoJSON(capa_colonias_1_topojson,
+                           fillColor = paleta[1], # Paleta de colores
+                            fillOpacity = 0.8,
+                             stroke = TRUE, # Dibujar los bordes del polígono
+                              weight = 0.3,  # line thickness
+                               dashArray = "1",
+                                opacity = 1,
+                                 color = "#D4D0BD",  # line colour 
+                                  group = "Muy alto") %>%
+               # capa de grado "Alto"
+               addTopoJSON(capa_colonias_2_topojson,
+                            fillColor = paleta[2], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   group = "Alto") %>%
+               # capa de grado "Medio"
+               addTopoJSON(capa_colonias_3_topojson,
+                            fillColor = paleta[3], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   group = "Medio") %>%
+               # capa de grado "Bajo"
+               addTopoJSON(capa_colonias_4_topojson,
+                            fillColor = paleta[4], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   group = "Bajo") %>%
+               # capa de grado "Muy bajo"
+               addTopoJSON(capa_colonias_5_topojson,
+                            fillColor = paleta[5], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   group = "Muy bajo") %>%
+                # capa de estados
+                 addTopoJSON(capa_estados_topojson, 
+                              fillColor = 'transparent',
+                               color = "#575757", 
+                                opacity = 0.7, 
+                                 weight = 2.1) %>%
+                  addControl(title,
+                              position = "bottomright") %>%
+                   addResetMapButton() %>%
+                    addSearchOSM() %>%
+                     addScaleBar(position = "bottomright", 
+                                  options = scaleBarOptions(maxWidth = 100, 
+                                                            metric = TRUE,
+                                                            imperial = TRUE, 
+                                                            updateWhenIdle = TRUE)) %>%
+                    addLegend("bottomright", 
+                               colors = paleta, 
+                                labels = c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo"),
+                                 values = ~forcats::fct_relevel(GM_2020, c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo")),
+                                  title = stringr::str_wrap("Grado de marginación", 15),
+                                   opacity =  0.7) %>%
+                     addLayersControl(overlayGroups = c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo"),
+                                       options = layersControlOptions(collapsed = TRUE)) # %>%
+                      #mapshot(url = "Output/index.html")
+#str(leaflet$dependencies)  # should be null to star
+
+leaflet <- leaflet %>%
+            addCircleMarkers(data = df_1,
+                              lng = ~lon,
+                               lat = ~lat,
+                                color = paleta[1], # Paleta de colores
+                                 fillOpacity = 0.5,
+                                  stroke = FALSE, # dibujar los bordes del polígono
+                                   radius = ~3, 
+                                     weight = 0.1,  # line thickness
+                                      dashArray = "1",
+                                       opacity = 0.3,
+                                        popup = popup_content_colonia(IMC_2020 %>% filter(GM_2020 == "Muy alto")),
+                                         popupOptions = popupOptions(closeOnClick = FALSE,
+                                                                     textsize = '15px',
+                                                                     direction = "auto",
+                                                                     opacity = 0.3,
+                                                                     padding = '8px 150px 5px 1px',
+                                                                     fontfamily = "montserrat"),
+                                          group = "Muy alto"
+                             ) 
+
+leaflet
+#saveRDS(leaflet, "Graficos/leaflet.RDS")
+#saveWidget(leaflet, "Graficos/leaflet.html", selfcontained = TRUE)
+```
+
+
+https://stackoverflow.com/questions/52393310/is-it-possible-to-switch-between-multiple-legends-when-switching-between-base-gr
+
+
+```{r, eval = FALSE}
+require(jsonlite)
+require(jsonify)
+
+p <-  leaflet() %>% 
+       addTiles() %>% 
+        setView(lat = 23.634501, lng = -102.552784, zoom = 5) %>%
+         addProviderTiles(providers$Esri.WorldImagery) %>%
+           addCircleMarkers(data = df_1,
+                             lng = ~lon,
+                             lat = ~lat,
+                              color = paleta[1], # Paleta de colores
+                               fillOpacity = 0.6,
+                                stroke = TRUE, # dibujar los bordes del polígono
+                                 radius = 2, 
+                                  weight = 1,  # line thickness
+                                   dashArray = "1",
+                                    opacity = 0.3,
+                                     popup = popup_content_colonia(IMC_2020 %>% filter(GM_2020 == "Muy alto")),
+                                      popupOptions = popupOptions(closeOnClick = TRUE, 
+                                                                  textsize = '15px',
+                                                                  direction = "auto",
+                                                                  opacity = 0.3,
+                                                                  padding = '8px 150px 5px 1px',
+                                                                  fontfamily = "montserrat"),
+                                      group = union("Rural", "Muy alto")
+                            ) %>%
+                    addLegend("bottomright", 
+                               colors = paleta, 
+                                labels = c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo"),
+                                 values = ~forcats::fct_relevel(GM_2020, c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo")),
+                                  title = stringr::str_wrap("Grado de marginación", 15),
+                                   opacity =  0.7) %>%
+                     addLayersControl(baseGroups = c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo"),
+                                       options = layersControlOptions(collapsed = TRUE)) %>%
+  htmlwidgets::onRender("
+    function(el, x) {
+      var updateLegend = function () {
+          var selectedGroup = document.querySelectorAll('input:checked')[0].nextSibling.innerText.substr(1);
+
+          document.querySelectorAll('.legend').forEach(a => a.hidden=true);
+          document.querySelectorAll('.legend').forEach(l => {
+            if (l.children[0].children[0].innerText == selectedGroup) l.hidden=false;
+          });
+      };
+      updateLegend();
+      this.on('baselayerchange', e => updateLegend());
+    }")
+
+str(leaflet$dependencies)  # should be null to star
+
+leaflet$dependencies <- list(htmlDependency(
+                              name = "font-awesome", 
+                               version = "4.3.0",
+                                # if local file use file instead of href below
+                                 #  with an absolute path
+                                src = c(href = paste(here::here())),
+                                 stylesheet = "css_style.css"
+                              )
+                            )
+p
+```
+
+
+```{r}
+# Se anexa la paleta de colores
+#fillColor <- p[["x"]][["calls"]][[3]][["args"]][[4]][["fillColor"]]
+library(htmltools)
+browsable(
+  tagList(list(
+    tags$head(
+      tags$style(
+          ".leaflet-popup-content-wrapper {
+            font-weight; normal,
+            font-size : 12px,
+            color: #FFFFFF;
+            padding: 8px 30px 5px 1px;
+            border-radius: 0px;
+            opacity: 0.8;
+            direction = auto;
+      }
+          "
+      )
+    ),
+   p
+  ))
+)
+```
+

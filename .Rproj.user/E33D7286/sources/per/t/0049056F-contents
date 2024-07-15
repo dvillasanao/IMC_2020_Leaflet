@@ -1,0 +1,59 @@
+/*Css para cambiar el formato en los popups*/
+
+.popup-Edo { /*Para estado*/
+  font-family: 'Morgana', sans-serif; /* Cambiar por el tipo de letra deseado */
+  font-size: 20px; /* Cambiar por el tamaño de letra deseado para texto de estado*/
+  color: black; /* Cambiar por el color deseado para texto de Estado*/
+}
+
+.popup-Mun { /*Para municipio*/
+  font-family: 'Morgana', sans-serif; /* Cambiar por el tipo de letra deseado */
+  font-size: 17px; /* Cambiar por el tamaño de letra deseado */
+  color: black; /* Cambiar por el color deseado para texto general */
+}
+
+.popup-Col { /*Para localidad
+  font-family: 'Morgana', sans-serif; /* Cambiar por el tipo de letra deseado para texto de localidad*/
+  font-size: 12px; /* Cambiar por el tamaño de letra deseado para texto de localidad*/
+  color: black; /* Cambiar por el color deseado para texto de localidad*/
+}
+
+.popup-Cif { /*Para texto índice de las cifras (no confundir con el dato)*/
+  font-family: 'Morgana', sans-serif; /* Cambiar por el tipo de letra deseado para texto de cifras*/
+  font-size: 11px; /* Cambiar por el tamaño de letra deseado para texto de cifras*/
+  color: black; /* Cambiar por el color deseado para texto de cifras*/
+}
+
+
+/*Para Color de cifras*/
+/*Estilo capa 1 Muy Alto*/
+.popup-C1 { 
+  color: #DB0E0E /* Cambiar por el color deseado para las cifras */
+}
+
+
+/*Estilo de la capa 2 Alto*/
+.popup-C2 {
+  color: #FC7200;
+}
+
+
+/*Estilo de la capa 3 Medio*/
+.popup-C3 { 
+  color: #FCAD00; 
+}
+
+
+/*Estilo de la capa 4 Bajo*/
+.popup-C4 { 
+  color: #FCEC00; 
+}
+
+
+/*Estilo de la capa 5 Muy Bajo*/
+.popup-C5 { 
+  color: #EFE8AA; 
+}
+
+
+

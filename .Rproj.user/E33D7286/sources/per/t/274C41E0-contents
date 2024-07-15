@@ -1,0 +1,738 @@
+---
+title: "Leaflet 2020"
+author: "Diana Villasana Ocampo"
+output:
+   html_document:
+      highlight: tango
+      theme: flatly
+      toc: yes
+      toc_depth: 2
+      toc_float:
+        collapsed: yes
+---
+\usepackage{color}
+
+```{=html}
+<style>
+code.r{
+  font-size: 10px;
+}
+pre {
+  font-size: 12px
+}
+</style>
+
+<style>
+body {
+text-align: justify;
+font-style: normal;
+font-family: "Montserrat";
+font-size: 12px
+}
+h1.title {
+  font-size: 40px;
+  color: #000D3B;
+}
+h1 {
+  color: #B6854D;
+}
+h2 {
+  color: #172984;
+}
+h3 {
+  color: #172984;
+}
+</style>
+```
+
+```{=html}
+<style>
+.nav>li>a {
+    position: relative;
+    display: block;
+    padding: 10px 15px;
+    color: #0A2687;
+}
+.nav-pills>li.active>a, .nav-pills>li.active>a:hover, .nav-pills>li.active>a:focus {
+    color: #ffffff;
+    background-color: #09C2BC;
+}
+</style>
+```
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = FALSE, cache.lazy = FALSE, 
+                         eval = FALSE, class.source = "fold-show")
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+options(digits = 2, encoding = "UTF8")
+```   
+ 
+
+```{r, echo=FALSE}
+rm(list = ls())
+```
+
+```{r, echo=FALSE}
+setwd(here::here())
+```
+
+
+**Font Stlye**  
+
+```{r}
+require(showtext)
+# activar showtext
+showtext_auto()
+font_add_google("Montserrat", "montserrat")
+```
+
+
+```{r}
+require(dplyr)
+require(spdplyr)
+require(forcats)
+require(htmltools)
+require(leaflet)
+require(htmlwidgets)
+require(ggmap)
+require(ggplot2)
+require(ggridges)
+require(grDevices)
+require(ggpubr)
+require(forcats)
+require(rgdal)
+require(tibble)
+require(sf)
+require(stringr)
+require(RColorBrewer)
+require(leafgl)
+require(leaflet.extras)
+require(mapview)
+```
+
+## Índice de marginación 2020
+
+```{r}
+load("Output/IML_2020.RData")
+```
+
+
+**Se leen los objetos de los shapefiles**
+
+```{r}
+shape_estados <- geojsonio::geojson_read("Output/Shapes/estados_json.geojson", what = "sp") 
+shape_municipios <- geojsonio::geojson_read("Output/Shapes/municipios_json.geojson", what = "sp") 
+shape_localidades_1 <- geojsonio::geojson_read("Output/Shapes/localidades_1_json.geojson", what = "sp") 
+shape_localidades_2 <- geojsonio::geojson_read("Output/Shapes/localidades_2_json.geojson", what = "sp") 
+shape_localidades_3 <- geojsonio::geojson_read("Output/Shapes/localidades_3_json.geojson", what = "sp") 
+shape_localidades_4 <- geojsonio::geojson_read("Output/Shapes/localidades_4_json.geojson", what = "sp") 
+shape_localidades_5 <- geojsonio::geojson_read("Output/Shapes/localidades_5_json.geojson", what = "sp") 
+shape_localidades_p_1 <- geojsonio::geojson_read("Output/Shapes/localidades_p_1_json.geojson", what = "sp") 
+shape_localidades_p_2 <- geojsonio::geojson_read("Output/Shapes/localidades_p_2_json.geojson", what = "sp") 
+shape_localidades_p_3 <- geojsonio::geojson_read("Output/Shapes/localidades_p_3_json.geojson", what = "sp") 
+shape_localidades_p_4 <- geojsonio::geojson_read("Output/Shapes/localidades_p_4_json.geojson", what = "sp") 
+shape_localidades_p_5 <- geojsonio::geojson_read("Output/Shapes/localidades_p_5_json.geojson", what = "sp") 
+```
+
+```{R}
+## Data frames
+shape_estados@data <- shape_estados@data %>%
+                        select(CVE_ENT)
+shape_municipios@data <- shape_municipios@data %>%
+                          select(CVE_MUN)
+shape_localidades_1@data <- shape_localidades_1@data %>%
+                             select(CVE_LOC)
+shape_localidades_2@data <- shape_localidades_2@data %>%
+                             select(CVE_LOC)
+shape_localidades_3@data <- shape_localidades_3@data %>%
+                             select(CVE_LOC)
+shape_localidades_4@data <- shape_localidades_4@data %>%
+                             select(CVE_LOC)
+shape_localidades_5@data <- shape_localidades_5@data %>%
+                             select(CVE_LOC)
+shape_localidades_p_1@data <- shape_localidades_p_1@data %>%
+                               select(CVE_LOC)
+shape_localidades_p_2@data <- shape_localidades_p_2@data %>%
+                               select(CVE_LOC)
+shape_localidades_p_3@data <- shape_localidades_p_3@data %>%
+                               select(CVE_LOC)
+shape_localidades_4@data <- shape_localidades_p_4@data %>%
+                             select(CVE_LOC)
+shape_localidades_p_5@data <- shape_localidades_p_5@data %>%
+                               select(CVE_LOC)
+```
+
+
+```{r}
+df_1 <- as.data.frame(shape_localidades_p_1) %>%
+         mutate(lon = .$coords.x1,
+                lat = .$coords.x2) %>%
+          select(-c('coords.x1', 'coords.x2', "CVE_LOC"))
+
+df_2 <- as.data.frame(shape_localidades_p_2) %>%
+         mutate(lon = .$coords.x1,
+                lat = .$coords.x2) %>%
+          select(-c('coords.x1', 'coords.x2', "CVE_LOC"))
+
+df_3 <- as.data.frame(shape_localidades_p_3) %>%
+         mutate(lon = .$coords.x1,
+                lat = .$coords.x2) %>%
+          select(-c('coords.x1', 'coords.x2', "CVE_LOC"))
+
+df_4 <- as.data.frame(shape_localidades_p_4) %>%
+         mutate(lon = .$coords.x1,
+                lat = .$coords.x2) %>%
+          select(-c('coords.x1', 'coords.x2', "CVE_LOC"))
+
+df_5 <- as.data.frame(shape_localidades_p_5) %>%
+         mutate(lon = .$coords.x1,
+                lat = .$coords.x2) %>%
+          select(-c('coords.x1', 'coords.x2', "CVE_LOC"))
+```
+
+
+
+## Paleta de colores 
+
+```{r}
+paleta <- c("#13322B", #Muy alto
+            "#086953", #Alto 
+            "#4C9562", #Medio
+            "#D1BB9E", #Bajo
+            "#C3BA6D") # Muy bajo
+            
+## Paleta de colores                         
+mypalette <- leaflet::colorFactor(palette = paleta, 
+                                            domain = forcats::fct_relevel(IML_2020$GM_2020, c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo")), 
+                                            na.color = "transparent")
+```
+
+**Etiquetas del mapa**   
+
+```{r, results=FALSE}
+state_popup_localidad1 <- readRDS("Output/PopUp/state_popup_localidad1.RDS")
+state_popup_localidad2 <- readRDS("Output/PopUp/state_popup_localidad2.RDS")
+state_popup_localidad3 <- readRDS("Output/PopUp/state_popup_localidad3.RDS")
+state_popup_localidad4 <- readRDS("Output/PopUp/state_popup_localidad4.RDS")
+state_popup_localidad5 <- readRDS("Output/PopUp/state_popup_localidad5.RDS")
+state_popup_localidad_p1 <- readRDS("Output/PopUp/state_popup_localidad_p1.RDS")
+state_popup_localidad_p2 <- readRDS("Output/PopUp/state_popup_localidad_p2.RDS")
+state_popup_localidad_p3 <- readRDS("Output/PopUp/state_popup_localidad_p3.RDS")
+state_popup_localidad_p4 <- readRDS("Output/PopUp/state_popup_localidad_p4.RDS")
+state_popup_localidad_p5 <- readRDS("Output/PopUp/state_popup_localidad_p5.RDS")
+```
+
+
+# Leaflet
+
+```{r}
+# Estructura del título
+tag.map.title <- tags$style(HTML("
+  .leaflet-control.map-title { 
+    transform: translate(-50%,20%);
+    position: fixed !important;
+    left: 50%;
+    text-align: center;
+    padding-left: 10px; 
+    padding-right: 10px; 
+    background: rgba(255,255,255,0.75);
+    font-weight: bold;
+    font-size: 28px;
+  }
+ ")) 
+
+# Nota de página
+title <- tags$div(
+  tag.map.title, HTML("Fuentes:Estimaciones del CONAPO con base en el INEGI, Censo de Población y Vivienda 2020.")
+)  
+```
+
+
+```{r}
+
+shape_localidades_1_b<- geojsonio::geojson_read("Output/Shapes/localidades_1_json.geojson", what = "sp")
+df_localidad_1 <- shape_localidades_1_b@data %>%
+                 select(-GM_2020) %>%
+                 inner_join(., IML_2020 %>% 
+                                mutate(across(.cols = c(5:14,16), as.numeric)) %>%
+                                 filter(GM_2020 %in% "Muy alto"),
+                            by = c("CVE_LOC"))
+
+popup_content_localidad_1 <- function(data) {
+  paste("<style>",
+        ".popup-Gen-text {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 14px;",  # Cambiarpor el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-color-text {",
+        "  color: green;",  # Cambiar por el color deseado para texto especifico, poner en span
+        "}",
+        ".popup-Edo {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 20px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-Mun-Loc {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 17px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        "</style>",
+        "<span class='popup-text'><span class='popup-Edo'>Estado: ", data$NOM_ENT, "</span><br>",
+        "<span class='popup-Mun-Loc'>Municipio: ", data$NOM_MUN, "</span><br>",
+        "<span class='popup-Mun-Loc'>Localidad: ", data$NOM_LOC, "</span><br>",
+        "Población Total:", formatC(data$POB_TOT, format = "f", big.mark = " ", digits = 0), "<br>",
+        "Grado de marginación: <span class='popup-color-text'>", data$GM_2020, "</span><br>",
+        "Índice de marginación: <span class='popup-color-text'>", round(data$IM_2020, 2), "</span><br>",
+        "Índice de marginación normalizado: <span class='popup-color-text'>", round(data$IMN_2020, 2), "</span><br>",
+        "% Población de 15 años y más analfabeta:", round(data$ANALF, 2), "<br>",
+        "% Población de 15 años o más sin educación básica:", round(data$SBASC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin drenaje ni excusado:", round(data$OVSDE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin energía eléctrica:", round(data$OVSEE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin agua entubada:", round(data$OVSAE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares con piso de tierra:", round(data$OVPT, 2), "<br>",
+        "% Ocupantes en viviendas con algún nivel de hacinamiento:", round(data$OVHAC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin refrigerador:", round(data$OVSREF, 2), "</span>")
+}
+
+shape_localidades_2_b<- geojsonio::geojson_read("Output/Shapes/localidades_2_json.geojson", what = "sp")
+df_localidad_2 <- shape_localidades_2_b@data %>%
+                 select(-GM_2020) %>%
+                 inner_join(., IML_2020 %>% 
+                                mutate(across(.cols = c(5:14,16), as.numeric)) %>%
+                                 filter(GM_2020 %in% "Alto"),
+                            by = c("CVE_LOC"))
+
+popup_content_localidad_2 <- function(data) {
+  paste("<style>",
+        ".popup-Gen-text {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 14px;",  # Cambiarpor el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-color-text {",
+        "  color: green;",  # Cambiar por el color deseado para texto especifico, poner en span
+        "}",
+        ".popup-Edo {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 20px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-Mun-Loc {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 17px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        "</style>",
+        "<span class='popup-text'><span class='popup-Edo'>Estado: ", data$NOM_ENT, "</span><br>",
+        "<span class='popup-Mun-Loc'>Municipio: ", data$NOM_MUN, "</span><br>",
+        "<span class='popup-Mun-Loc'>Localidad: ", data$NOM_LOC, "</span><br>",
+        "Población Total:", formatC(data$POB_TOT, format = "f", big.mark = " ", digits = 0), "<br>",
+        "Grado de marginación: <span class='popup-color-text'>", data$GM_2020, "</span><br>",
+        "Índice de marginación: <span class='popup-color-text'>", round(data$IM_2020, 2), "</span><br>",
+        "Índice de marginación normalizado: <span class='popup-color-text'>", round(data$IMN_2020, 2), "</span><br>",
+        "% Población de 15 años y más analfabeta:", round(data$ANALF, 2), "<br>",
+        "% Población de 15 años o más sin educación básica:", round(data$SBASC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin drenaje ni excusado:", round(data$OVSDE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin energía eléctrica:", round(data$OVSEE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin agua entubada:", round(data$OVSAE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares con piso de tierra:", round(data$OVPT, 2), "<br>",
+        "% Ocupantes en viviendas con algún nivel de hacinamiento:", round(data$OVHAC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin refrigerador:", round(data$OVSREF, 2), "</span>")
+}
+
+
+
+shape_localidades_3_b<- geojsonio::geojson_read("Output/Shapes/localidades_3_json.geojson", what = "sp")
+df_localidad_3 <- shape_localidades_3_b@data %>%
+                 select(-GM_2020) %>%
+                 inner_join(., IML_2020 %>% 
+                                mutate(across(.cols = c(5:14,16), as.numeric)) %>%
+                                 filter(GM_2020 %in% "Medio"),
+                            by = c("CVE_LOC"))
+
+popup_content_localidad_3 <- function(data) {
+  paste("<style>",
+        ".popup-Gen-text {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 14px;",  # Cambiarpor el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-color-text {",
+        "  color: green;",  # Cambiar por el color deseado para texto especifico, poner en span
+        "}",
+        ".popup-Edo {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 20px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-Mun-Loc {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 17px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        "</style>",
+        "<span class='popup-text'><span class='popup-Edo'>Estado: ", data$NOM_ENT, "</span><br>",
+        "<span class='popup-Mun-Loc'>Municipio: ", data$NOM_MUN, "</span><br>",
+        "<span class='popup-Mun-Loc'>Localidad: ", data$NOM_LOC, "</span><br>",
+        "Población Total:", formatC(data$POB_TOT, format = "f", big.mark = " ", digits = 0), "<br>",
+        "Grado de marginación: <span class='popup-color-text'>", data$GM_2020, "</span><br>",
+        "Índice de marginación: <span class='popup-color-text'>", round(data$IM_2020, 2), "</span><br>",
+        "Índice de marginación normalizado: <span class='popup-color-text'>", round(data$IMN_2020, 2), "</span><br>",
+        "% Población de 15 años y más analfabeta:", round(data$ANALF, 2), "<br>",
+        "% Población de 15 años o más sin educación básica:", round(data$SBASC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin drenaje ni excusado:", round(data$OVSDE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin energía eléctrica:", round(data$OVSEE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin agua entubada:", round(data$OVSAE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares con piso de tierra:", round(data$OVPT, 2), "<br>",
+        "% Ocupantes en viviendas con algún nivel de hacinamiento:", round(data$OVHAC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin refrigerador:", round(data$OVSREF, 2), "</span>")
+}
+
+
+shape_localidades_4_b<- geojsonio::geojson_read("Output/Shapes/localidades_4_json.geojson", what = "sp")
+df_localidad_4 <- shape_localidades_4_b@data %>%
+                 select(-GM_2020) %>%
+                 inner_join(., IML_2020 %>% 
+                                mutate(across(.cols = c(5:14,16), as.numeric)) %>%
+                                 filter(GM_2020 %in% "Bajo"),
+                            by = c("CVE_LOC"))
+
+popup_content_localidad_4 <- function(data) {
+  paste("<style>",
+        ".popup-Gen-text {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 14px;",  # Cambiarpor el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-color-text {",
+        "  color: green;",  # Cambiar por el color deseado para texto especifico, poner en span
+        "}",
+        ".popup-Edo {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 20px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-Mun-Loc {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 17px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        "</style>",
+        "<span class='popup-text'><span class='popup-Edo'>Estado: ", data$NOM_ENT, "</span><br>",
+        "<span class='popup-Mun-Loc'>Municipio: ", data$NOM_MUN, "</span><br>",
+        "<span class='popup-Mun-Loc'>Localidad: ", data$NOM_LOC, "</span><br>",
+        "Población Total:", formatC(data$POB_TOT, format = "f", big.mark = " ", digits = 0), "<br>",
+        "Grado de marginación: <span class='popup-color-text'>", data$GM_2020, "</span><br>",
+        "Índice de marginación: <span class='popup-color-text'>", round(data$IM_2020, 2), "</span><br>",
+        "Índice de marginación normalizado: <span class='popup-color-text'>", round(data$IMN_2020, 2), "</span><br>",
+        "% Población de 15 años y más analfabeta:", round(data$ANALF, 2), "<br>",
+        "% Población de 15 años o más sin educación básica:", round(data$SBASC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin drenaje ni excusado:", round(data$OVSDE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin energía eléctrica:", round(data$OVSEE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin agua entubada:", round(data$OVSAE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares con piso de tierra:", round(data$OVPT, 2), "<br>",
+        "% Ocupantes en viviendas con algún nivel de hacinamiento:", round(data$OVHAC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin refrigerador:", round(data$OVSREF, 2), , "<br>", 
+        "</span>")
+}
+
+
+shape_localidades_5_b<- geojsonio::geojson_read("Output/Shapes/localidades_5_json.geojson", what = "sp")
+df_localidad_5 <- shape_localidades_5_b@data %>%
+                 select(-GM_2020) %>%
+                 inner_join(., IML_2020 %>% 
+                                mutate(across(.cols = c(5:14,16), as.numeric)) %>%
+                                 filter(GM_2020 %in% "Muy bajo"),
+                            by = c("CVE_LOC"))
+
+
+popup_content_localidad_5 <- function(data) {
+  paste("<style>",
+        ".popup-Gen-text {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 14px;",  # Cambiarpor el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-color-text {",
+        "  color: green;",  # Cambiar por el color deseado para texto especifico, poner en span
+        "}",
+        ".popup-Edo {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 20px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        ".popup-Mun-Loc {",
+        "  font-family: 'Morgana', sans-serif;",  # Cambiar por el tipo de letra deseado
+        "  font-size: 17px;",  # Cambiar por el tamaño de letra deseado
+        "  color: black;",  # Cambiar por el color deseado para texto general
+        "}",
+        "</style>",
+        "<span class='popup-text'><span class='popup-Edo'>Estado: ", data$NOM_ENT, "</span><br>",
+        "<span class='popup-Mun-Loc'>Municipio: ", data$NOM_MUN, "</span><br>",
+        "<span class='popup-Mun-Loc'>Localidad: ", data$NOM_LOC, "</span><br>",
+        "Población Total:", formatC(data$POB_TOT, format = "f", big.mark = " ", digits = 0), "<br>",
+        "Grado de marginación: <span class='popup-color-text'>", data$GM_2020, "</span><br>",
+        "Índice de marginación: <span class='popup-color-text'>", round(data$IM_2020, 2), "</span><br>",
+        "Índice de marginación normalizado: <span class='popup-color-text'>", round(data$IMN_2020, 2), "</span><br>",
+        "% Población de 15 años y más analfabeta:", round(data$ANALF, 2), "<br>",
+        "% Población de 15 años o más sin educación básica:", round(data$SBASC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin drenaje ni excusado:", round(data$OVSDE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin energía eléctrica:", round(data$OVSEE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin agua entubada:", round(data$OVSAE, 2), "<br>",
+        "% Ocupantes en viviendas paticulares con piso de tierra:", round(data$OVPT, 2), "<br>",
+        "% Ocupantes en viviendas con algún nivel de hacinamiento:", round(data$OVHAC, 2), "<br>",
+        "% Ocupantes en viviendas paticulares sin refrigerador:", round(data$OVSREF, 2), "</span>")
+}
+
+
+
+leaflet <- leaflet() %>% 
+            addTiles() %>% 
+             setView(lat = 23.6260333, lng = -102.5375005, zoom = 6) %>%
+              addProviderTiles(providers$OpenStreetMap, 
+                                options = providerTileOptions(minZoom = 2, maxZoom = 5)) %>%
+               # capa de grado "Muy alto"
+
+               addPolygons(data = shape_localidades_1,
+                            fillColor = paleta[1], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   highlight = highlightOptions(weight = 2,
+                                                                color = "red", # Color de selección
+                                                                dashArray = "", 
+                                                                fillOpacity = 0.6,
+                                                                bringToFront = TRUE),
+                                    label = state_popup_localidad1,  # Etiquetas
+                                     labelOptions = labelOptions(textOnly = FALSE, 
+                                                                 opacity = 0.9,
+                                                                 style = list("font-weight" = "normal", 
+                                                                              "font-family" = "montserrat",                 
+                                                                              opacity = 0.6,
+                                                                              padding = "3px 8px"),
+                                                                              textsize = '15px',
+                                                                              direction = "auto"),
+                                      group = "Muy alto") %>%
+    
+               addCircleMarkers(data = df_1,
+                                 lng = ~lon,
+                                  lat = ~lat,
+                                   color = paleta[1], # Paleta de colores
+                                    fillOpacity = 0.6,
+                                     stroke = TRUE, # dibujar los bordes del polígono
+                                      radius = 2, 
+                                       weight = 1,  # line thickness
+                                        dashArray = "1",
+                                         opacity = 0.3,
+                                          popup = popup_content_localidad_1(df_localidad_1),  # Etiquetas
+                                            popupOptions = popupOptions(closeOnClick = TRUE, 
+                                                                        textsize = '15px',
+                                                                        direction = "auto",
+                                                                        opacity = 0.3,
+                                                                        padding = '8px 150px 5px 1px',
+                                                                        fontfamily = "montserrat"), 
+                                 group = "Muy alto") %>%
+               # capa de grado "Alto"
+               addPolygons(data = shape_localidades_2,
+                            fillColor = paleta[2], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   highlight = highlightOptions(weight = 2,
+                                                                color = "red", # Color de selección
+                                                                dashArray = "", 
+                                                                fillOpacity = 0.6,
+                                                                bringToFront = TRUE),
+                                    label = state_popup_localidad2,  # Etiquetas
+                                     labelOptions = labelOptions(textOnly = FALSE, 
+                                                                 opacity = 0.9,
+                                                                 style = list("font-weight" = "normal", 
+                                                                              "font-family" = "montserrat",                 
+                                                                              opacity = 0.6,
+                                                                              padding = "3px 8px"),
+                                                                              textsize = '15px',
+                                                                              direction = "auto"),
+                                      group = "Alto") %>%
+               addCircleMarkers(data = df_2,
+                                 lng = ~lon,
+                                  lat = ~lat,
+                                   color = paleta[2], # Paleta de colores
+                                    fillOpacity = 0.6,
+                                     stroke = TRUE, # dibujar los bordes del polígono
+                                      radius = 2, 
+                                       weight = 1,  # line thickness
+                                        dashArray = "1",
+                                         opacity = 0.3,
+                                          popup = popup_content_localidad_2(df_localidad_2),  # Etiquetas
+                                            popupOptions = popupOptions(closeOnClick = TRUE, 
+                                                                        textsize = '15px',
+                                                                        direction = "auto",
+                                                                        opacity = 0.3,
+                                                                        padding = '8px 150px 5px 1px',
+                                                                        fontfamily = "montserrat"), 
+                                 group = "Alto") %>%
+               # capa de grado "Medio"
+               addPolygons(data = shape_localidades_3,
+                            fillColor = paleta[3], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   highlight = highlightOptions(weight = 2,
+                                                                color = "red", # Color de selección
+                                                                dashArray = "", 
+                                                                fillOpacity = 0.6,
+                                                                bringToFront = TRUE),
+                                    label = state_popup_localidad3,  # Etiquetas
+                                     labelOptions = labelOptions(textOnly = FALSE, 
+                                                                 opacity = 0.9,
+                                                                 style = list("font-weight" = "normal", 
+                                                                              "font-family" = "montserrat",                 
+                                                                              opacity = 0.6,
+                                                                              padding = "3px 8px"),
+                                                                              textsize = '15px',
+                                                                              direction = "auto"),
+                                      group = "Medio") %>%
+               addCircleMarkers(data = df_3,
+                                 lng = ~lon,
+                                  lat = ~lat,
+                                   color = paleta[3], # Paleta de colores
+                                    fillOpacity = 0.6,
+                                     stroke = TRUE, # dibujar los bordes del polígono
+                                      radius = 2, 
+                                       weight = 1,  # line thickness
+                                        dashArray = "1",
+                                         opacity = 0.3,
+                                          popup = popup_content_localidad_3(df_localidad_3),  # Etiquetas
+                                            popupOptions = popupOptions(closeOnClick = TRUE, 
+                                                                        textsize = '15px',
+                                                                        direction = "auto",
+                                                                        opacity = 0.3,
+                                                                        padding = '8px 150px 5px 1px',
+                                                                        fontfamily = "montserrat"), 
+                                 group = "Medio") %>%
+               # capa de grado "Bajo"
+               addPolygons(data = shape_localidades_4,
+                            fillColor = paleta[4], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   highlight = highlightOptions(weight = 2,
+                                                                color = "red", # Color de selección
+                                                                dashArray = "", 
+                                                                fillOpacity = 0.6,
+                                                                bringToFront = TRUE),
+                                    label = state_popup_localidad4,  # Etiquetas
+                                     labelOptions = labelOptions(textOnly = FALSE, 
+                                                                 opacity = 0.9,
+                                                                 style = list("font-weight" = "normal", 
+                                                                              "font-family" = "montserrat",                 
+                                                                              opacity = 0.6,
+                                                                              padding = "3px 8px"),
+                                                                              textsize = '15px',
+                                                                              direction = "auto"),
+                                      group = "Bajo") %>%
+               addCircleMarkers(data = df_4,
+                                 lng = ~lon,
+                                  lat = ~lat,
+                                   color = paleta[4], # Paleta de colores
+                                    fillOpacity = 0.6,
+                                     stroke = TRUE, # dibujar los bordes del polígono
+                                      radius = 2, 
+                                       weight = 1,  # line thickness
+                                        dashArray = "1",
+                                         opacity = 0.3,
+                                          popup = popup_content_localidad_4(df_localidad_4),  # Etiquetas
+                                            popupOptions = popupOptions(closeOnClick = TRUE, 
+                                                                        textsize = '15px',
+                                                                        direction = "auto",
+                                                                        opacity = 0.3,
+                                                                        padding = '8px 150px 5px 1px',
+                                                                        fontfamily = "montserrat"), 
+                                 group = "Bajo") %>%
+               # capa de grado "Muy bajo"
+  
+               addPolygons(data = shape_localidades_5,
+                            fillColor = paleta[5], # Paleta de colores
+                             fillOpacity = 0.8,
+                              stroke = TRUE, # Dibujar los bordes del polígono
+                               weight = 0.3,  # line thickness
+                                dashArray = "1",
+                                 opacity = 1,
+                                  color = "#D4D0BD",  # line colour 
+                                   highlight = highlightOptions(weight = 2,
+                                                                color = "red", # Color de selección
+                                                                dashArray = "", 
+                                                                fillOpacity = 0.6,
+                                                                bringToFront = TRUE),
+                                    label = state_popup_localidad5,  # Etiquetas
+                                     labelOptions = labelOptions(textOnly = FALSE, 
+                                                                 opacity = 0.9,
+                                                                 style = list("font-weight" = "normal", 
+                                                                              "font-family" = "montserrat",                 
+                                                                              opacity = 0.6,
+                                                                              padding = "3px 8px"),
+                                                                              textsize = '15px',
+                                                                              direction = "auto"),
+                                      group = "Muy bajo") %>%
+               addCircleMarkers(data = df_5,
+                                 lng = ~lon,
+                                  lat = ~lat,
+                                   color = paleta[5], # Paleta de colores
+                                    fillOpacity = 0.6,
+                                     stroke = TRUE, # dibujar los bordes del polígono
+                                      radius = 2, 
+                                       weight = 1,  # line thickness
+                                        dashArray = "1",
+                                         opacity = 0.3,
+                                          popup = popup_content_localidad_5(df_localidad_5),  # Etiquetas
+                                            popupOptions = popupOptions(closeOnClick = TRUE, 
+                                                                        textsize = '15px',
+                                                                        direction = "auto",
+                                                                        opacity = 0.3,
+                                                                        padding = '8px 150px 5px 1px',
+                                                                        fontfamily = "montserrat"), 
+                                 group = "Muy bajo") %>%
+                # capa de estados
+                 addPolylines(data = shape_estados, 
+                              fillColor = 'transparent',
+                               color = "#575757", 
+                                opacity = 0.7, 
+                                 weight = 2.1) %>%
+                  addControl(title,
+                              position = "bottomright") %>%
+                  addResetMapButton() %>%
+                    addScaleBar(position = "bottomright", 
+                                options = scaleBarOptions(maxWidth = 100, 
+                                                          metric = TRUE,
+                                                          imperial = TRUE, 
+                                                          updateWhenIdle = TRUE)) %>%
+                    addLegend("bottomright", 
+                               colors = paleta, 
+                                labels = c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo"),
+                                 values = ~forcats::fct_relevel(GM_2020, c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo")),
+                                  title = stringr::str_wrap("Grado de marginación", 15),
+                                   opacity =  0.7) %>%
+                     addLayersControl(overlayGroups = c("Urbano", "Rural"),
+                                       baseGroups = c("Muy alto", "Alto", "Medio", "Bajo", "Muy bajo"),
+                                       options = layersControlOptions(collapsed = TRUE)) # %>%
+                      #mapshot(url = "Output/index.html")
+
+
+#leaflet
+saveRDS(leaflet, "Graficos/leaflet.RDS")
+saveWidget(leaflet, "Graficos/leaflet.html", selfcontained = TRUE)
+```
